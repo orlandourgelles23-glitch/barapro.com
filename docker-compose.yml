@@ -1,0 +1,33 @@
+# ===========================================
+# BARAPRO v11 - Docker Compose
+# ===========================================
+
+version: '3.8'
+
+services:
+  barapro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: barapro-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:../db/production.db
+      - NODE_ENV=production
+    volumes:
+      - barapro-db:/app/db
+      - barapro-backups:/app/backups
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  barapro-db:
+    driver: local
+  barapro-backups:
+    driver: local

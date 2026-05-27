@@ -1,0 +1,157 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id                          String             @id @default(uuid())
+  name                        String
+  description                 String?
+  initialInvestment           Float
+  discountRate                Float
+  annualCosts                 Float              @default(0)
+  annualRevenue               Float              @default(0)
+  projectDuration             Int
+  projectType                 String             @default("nuevo")
+  pdlCategory                 String             @default("economico_productivo")
+  entity                      String?
+  responsible                 String?
+  location                    String?
+  currency                    String             @default("CUP")
+  taxRateSales                Float              @default(10)
+  taxRateIncome               Float              @default(15)
+  socialSecurityContribution  Float              @default(0)
+  laborForceTax               Float              @default(0)
+  localDevelopmentContribution Float             @default(0)
+  generalExpensesCoefficient  Float              @default(0)
+  adminExpensesCoefficient    Float              @default(0)
+  productionExpensesCoefficient Float             @default(0)
+  scenarioOptimist            Float              @default(0.10)
+  scenarioPessimist           Float              @default(-0.10)
+  objectiveGeneral            String?
+  objectiveSpecific           String?
+  assumptions                 String?
+  fixedCosts                  Float              @default(0)
+  variableCosts               Float              @default(0)
+  financeRate                 Float?
+  reinvestRate                Float?
+  contingencyReserveRate      Float              @default(0)
+  retainedEarningsRate        Float              @default(50)
+  discountRatesByYear         String             @default("")
+  scenarioInvestPessimist     Float              @default(0.10)
+  scenarioInvestOptimist      Float              @default(-0.05)
+  scenarioRevenuePessimist    Float              @default(-0.20)
+  scenarioRevenueOptimist     Float              @default(0.05)
+  scenarioCostsPessimist      Float              @default(0.15)
+  scenarioCostsOptimist       Float              @default(0.05)
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+
+  cashFlows          CashFlow[]
+  financingSources   FinancingSource[]
+  investmentItems    InvestmentItem[]
+  annualProjections  AnnualProjection[]
+}
+
+model CashFlow {
+  id       String  @id @default(uuid())
+  period   Int
+  amount   Float
+  type     String  @default("net")
+  projectId String
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model FinancingSource {
+  id          String  @id @default(uuid())
+  sourceName  String
+  amount      Float
+  interestRate Float?
+  term        Int?
+  gracePeriod Int?
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model InvestmentItem {
+  id              String  @id @default(uuid())
+  category        String
+  itemName        String
+  quantity        Float
+  unitPrice       Float
+  usefulLife      Int?
+  depreciationRate Float?
+  currency        String  @default("CUP")
+  projectId       String
+  project         Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+}
+
+model AnnualProjection {
+  id             String  @id @default(uuid())
+  year           Int
+  revenue        Float   @default(0)
+  variableCosts  Float   @default(0)
+  fixedCosts     Float   @default(0)
+  depreciation   Float   @default(0)
+  projectId      String
+  project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// AUTH & LICENSE MODELS (adapted from DETOA v2.6)
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String   @default("")
+  role      String   @default("admin")  // "admin" | "user"
+  isMaster  Boolean  @default(false)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model License {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  licensee      String    @default("")
+  email         String    @default("")
+  tier          String    @default("trial")
+  maxUsers      Int       @default(3)
+  features      String    @default("[]")
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime
+  activatedAt   DateTime?
+  lastCheckedAt DateTime?
+  machineId     String    @default("")
+  status        String    @default("active")
+  note          String    @default("")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model CenterConfig {
+  id              String   @id @default(cuid())
+  centerName      String   @default("")
+  organism        String   @default("")
+  masterUsername   String   @default("")
+  // ⚠️ SECURITY WARNING: masterPassword stores the hashed password for the
+  // master User account. While the center-config API strips this field before
+  // sending responses, and the PUT handler hashes new passwords via bcrypt,
+  // the column name is misleading — it is NOT plaintext. However, the backup
+  // import route intentionally skips this field. If migrating to a more secure
+  // model, consider renaming to masterPasswordHash and/or moving credentials
+  // entirely to the User model (which already stores hashed passwords).
+  masterPassword   String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
